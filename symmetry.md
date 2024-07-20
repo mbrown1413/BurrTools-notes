@@ -1,206 +1,5 @@
-# BurrTools Notes
 
-
-## Assemblers
-
-Base assembler:
-  * [assembler.cpp](burr-tools/src/lib/assembler.cpp)
-  * [assembler.h](burr-tools/src/lib/assembler.h)
-
-### Assembler 0
-  * [assembler_0.cpp](burr-tools/src/lib/assembler_0.cpp)
-  * [assembler_0.h](burr-tools/src/lib/assembler_0.h)
-
-Cannot handle piece ranges or multiple instances of the same piece. Dancing
-links Algorithm X (DLX) with modifications to allow for variable voxels and
-hole counting.
-
-[Description in assembler_0.h](burr-tools/src/lib/assembler_0.h#L36):
-
-    It is more or less identical to Don Knuths idea. Some changes have been done
-    though to provide for holes. This class can not handle ranges or multi-pieces.
-
-    All involved pieces must be there exactly one time. But in that case it is a
-    bit faster than assembler_1.
-
-### Assembler 1
-  * [assembler_1.cpp](burr-tools/src/lib/assembler_1.cpp)
-  * [assembler_1.h](burr-tools/src/lib/assembler_1.h)
-
-Handles multiple instances of a piece, and piece ranges.
-
-[Description in assembler_1.h](burr-tools/src/lib/assembler_1.h#L37):
-
-    This assembler is written with ideas from Wei-Hwa Huang. It can handle ranges for the piece
-    numbers and thus also multiple instances of one piece.
-
-    But for simple cases it is not really optimal.
-
-### Piece Ranges
-
-[Description in assembler_1_c::prepare](burr-tools/src/lib/assembler_1.cpp#L331):
-
-    Multiple instances of the same piece is [handled] in a similar way [as
-    optional voxels]. To prevent finding the same solution again and again with
-    just the pieces swapping places we number the pieces and their possible
-    placements and disallow that the position number of piece n is lower than
-    the position number of piece n-1. This can be achieved by adding more
-    constraint columns. There need to be one column for each
-
-Although [assembler_0_c::prepare](burr-tools/src/lib/assembler_0.cpp#L402), I believe this is a mistake since only assembler_1 supports piece ranges.
-
-
-## Grids
-
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>gridType enum</th>
-      <th>Name in UI</th>
-      <th>Description</th>
-    </tr>
-  </thead>
-  <tr>
-    <td>0</td>
-    <td>GT_BRICKS</td>
-    <td>Brick</td>
-    <td>cubes</td>
-  </tr>
-  <tr>
-    <td>1</td>
-    <td>GT_TRIANGULAR_PRISM</td>
-    <td>Triangular Prism</td>
-    <td>triangles stacked in Z-direction</td>
-  </tr>
-  <tr>
-    <td>2</td>
-    <td>GT_SPHERES</td>
-    <td>Spheres</td>
-    <td>tightly packed spheres</td>
-  </tr>
-  <tr>
-    <td>3</td>
-    <td>GT_RHOMBIC</td>
-    <td>Rhombic Tetrahedra</td>
-    <td>complicated cut cube to build rhombic dodecahedra</td>
-  </tr>
-  <tr>
-    <td>4</td>
-    <td>GT_TETRA_OCTA</td>
-    <td>Tetrahedra-Octahera</td>
-    <td>spacegrid for with tetrahedron and octrahera, also a cut cube</td>
-  </tr>
-</table>
-
-See:
-  * [gridtype.h](burr-tools/src/lib/gridtype.h)
-    * [gridType_c](burr-tools/src/lib/gridtype.h#L46)
-  * [guigridtype.cpp](burr-tools/src/gui/guigridtype.cpp)
-
-The `gridType_c` class defines the current grid. It is mostly a pass-through
-which multiplexes between different classes actually handling the logic for
-voxels, symmetries, etc.
-
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>gridType enum</th>
-      <th>Voxel Class</th>
-      <th>Symmetry Class</th>
-      <th>Movement Cache</th>
-    </tr>
-  </thead>
-  <tr>
-    <td>0</td>
-    <td>GT_BRICKS</td>
-    <td>
-      0<br>
-      <a href="burr-tools/src/lib/voxel_0.h">voxel_0.h</a><br>
-      <a href="burr-tools/src/lib/voxel_0.cpp">voxel_0.cpp</a>
-    </td>
-    <td>
-      0<br>
-      <a href="burr-tools/src/lib/symmetries_0.h">symmetries_0.h</a><br>
-      <a href="burr-tools/src/lib/symmetries_0.cpp">symmetries_0.cpp</a>
-    </td>
-    <td>
-      0<br>
-      <a href="burr-tools/src/lib/movementcache_0.h">movementcache_0.h</a><br>
-      <a href="burr-tools/src/lib/movementcache_0.cpp">movementcache_0.cpp</a>
-    </td>
-  </tr>
-  <tr>
-    <td>1</td>
-    <td>GT_TRIANGULAR_PRISM</td>
-    <td>
-      1<br>
-      <a href="burr-tools/src/lib/voxel_1.h">voxel_1.h</a><br>
-      <a href="burr-tools/src/lib/voxel_1.cpp">voxel_1.cpp</a>
-    </td>
-    <td>
-      1<br>
-      <a href="burr-tools/src/lib/symmetries_1.h">symmetries_1.h</a><br>
-      <a href="burr-tools/src/lib/symmetries_1.cpp">symmetries_1.cpp</a>
-    </td>
-    <td>
-      1<br>
-      <a href="burr-tools/src/lib/movementcache_1.h">movementcache_1.h</a><br>
-      <a href="burr-tools/src/lib/movementcache_1.cpp">movementcache_1.cpp</a>
-    </td>
-  </tr>
-  <tr>
-    <td>2</td>
-    <td>GT_SPHERES</td>
-    <td>
-      2<br>
-      <a href="burr-tools/src/lib/voxel_2.h">voxel_2.h</a><br>
-      <a href="burr-tools/src/lib/voxel_2.cpp">voxel_2.cpp</a>
-    </td>
-    <td>
-      2<br>
-      <a href="burr-tools/src/lib/symmetries_2.h">symmetries_2.h</a><br>
-      <a href="burr-tools/src/lib/symmetries_2.cpp">symmetries_2.cpp</a>
-    </td>
-    <td>(none)</td>
-  </tr>
-  </tr>
-  <tr>
-    <td>3</td>
-    <td>GT_RHOMBIC</td>
-    <td>
-      3<br>
-      <a href="burr-tools/src/lib/voxel_3.h">voxel_3.h</a><br>
-      <a href="burr-tools/src/lib/voxel_3.cpp">voxel_3.cpp</a>
-    </td>
-    <td>
-      0<br>
-      <a href="burr-tools/src/lib/symmetries_0.h">symmetries_0.h</a><br>
-      <a href="burr-tools/src/lib/symmetries_0.cpp">symmetries_0.cpp</a>
-    </td>
-    <td>(none)</td>
-  </tr>
-  <tr>
-    <td>4</td>
-    <td>GT_TETRA_OCTA</td>
-    <td>
-      4<br>
-      <a href="burr-tools/src/lib/voxel_4.h">voxel_4.h</a><br>
-      <a href="burr-tools/src/lib/voxel_4.cpp">voxel_4.cpp</a>
-    </td>
-    <td>
-      0<br>
-      <a href="burr-tools/src/lib/symmetries_0.h">symmetries_0.h</a><br>
-      <a href="burr-tools/src/lib/symmetries_0.cpp">symmetries_0.cpp</a>
-    </td>
-    <td>(none)</td>
-  </tr>
-</table>
-
-
-
-## Symmetry
+# Symmetry
 
 This will all be in the context of assembler_1 unless otherwise noted.
 
@@ -251,7 +50,7 @@ mirror solutions.
 
 We'll explore each of these individually in more detail now.
 
-### `avoidTransormedMirror` structure (Keep Mirror Solutions)
+## `avoidTransormedMirror` structure (Keep Mirror Solutions)
 * [Definition](burr-tools/src/lib/assembler_1.h#L171): `mirrorInfo_c * avoidTransformedMirror;`
 * [assembler_1_c::assembler_1_c()](burr-tools/src/lib/assembler_1.cpp#L268): Initialized to 0
 * [assembler_1_c::createMatrix()](burr-tools/src/lib/assembler_1.cpp#L740): Cleared if `keepMirror`
@@ -260,7 +59,7 @@ We'll explore each of these individually in more detail now.
 * [assembler_1_c::solution()](burr-tools/src/lib/assembler_1.cpp#L1060): Called when a solution is found. The solution is ignored if `avoidTransformedAssemblies && assembly->smallerRotationExists(problem, avoidTransformedPivot, avoidTransformedMirror, complete)`
   * We'll explore [assembly_c::smallerRotationExists()](burr-tools/src/lib/assembly.cpp#L630) more later.
 
-### `avoidTransformedAssemblies` flag (Keep Rotated Solutions)
+## `avoidTransformedAssemblies` flag (Keep Rotated Solutions)
 * [assembler_1_c::assembler_1_c()](burr-tools/src/lib/assembler_1.cpp#L268): Initialized to 0
 * [assembler_1_c::createMatrix()](burr-tools/src/lib/assembler_1.cpp#L744): Set to `false` if `keepRotations`
 * [assembler_1_c::checkForTransformedAssemblies()](burr-tools/src/lib/assembler_1.cpp#L1010): Set to `true`
@@ -268,12 +67,12 @@ We'll explore each of these individually in more detail now.
 * [assembler_1_c::solution()](burr-tools/src/lib/assembler_1.cpp#L1060): Called when a solution is found. The solution is ignored if `avoidTransformedAssemblies && assembly->smallerRotationExists(problem, avoidTransformedPivot, avoidTransformedMirror, complete)`
   * We'll explore [assembly_c::smallerRotationExists()](burr-tools/src/lib/assembly.cpp#L630) more later.
 
-### `complete` flag (Do expensive Rotation Check)
+## `complete` flag (Do expensive Rotation Check)
 * [assembler_1_c::createMatrix()](burr-tools/src/lib/assembler_1.cpp#L661): Set to `comp` parameter (leads back to UI checkbox)
 * [assembler_1_c::solution()](burr-tools/src/lib/assembler_1.cpp#L1060): Called when a solution is found. The solution is ignored if `avoidTransformedAssemblies && assembly->smallerRotationExists(problem, avoidTransformedPivot, avoidTransformedMirror, complete)`
   * We'll explore [assembly_c::smallerRotationExists()](burr-tools/src/lib/assembly.cpp#L630) more later.
 
-### [assembler_1_c::prepare](burr-tools/src/lib/assembler_1.cpp#L341)
+## [assembler_1_c::prepare](burr-tools/src/lib/assembler_1.cpp#L341)
 Called in [assembler_1_c::createMatrix()](burr-tools/src/lib/assembler_1.cpp#L728) before it clears `avoidTransformedMirror` if `keepMirror == true`.
 
 `prepare()` does a number of important things:
