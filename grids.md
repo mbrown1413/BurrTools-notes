@@ -50,6 +50,9 @@ The `gridType_c` class defines the current grid. It is mostly a pass-through
 which multiplexes between different classes actually handling the logic for
 voxels, symmetries, etc.
 
+Only Bricks and Triangular Prism support disassembly, so the other grid types
+do not have a movement cache implementation.
+
 <table>
   <thead>
     <tr>
