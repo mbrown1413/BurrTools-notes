@@ -46,5 +46,5 @@ Handles multiple instances of a piece, and piece ranges.
     the position number of piece n-1. This can be achieved by adding more
     constraint columns. There need to be one column for each
 
-Although [assembler_0_c::prepare](burr-tools/src/lib/assembler_0.cpp#L402), I believe this is a mistake since only assembler_1 supports piece ranges.
+Although this comment is also in [assembler_0_c::prepare](burr-tools/src/lib/assembler_0.cpp#L402), I believe this is a mistake since only assembler_1 supports piece ranges.
 
