@@ -85,13 +85,13 @@ The matrix has the following columns (in order):
 * **Part** (one for each)
 * **Fixed Voxels** (one for each): These are the only columns required for a solution. TODO: How are the nodes from other columns removed from the header row?
 * **Variable Voxels** (one for each)
-* **Range Column** (a single column, only present if pieces have ranges): See [Range Column Optimization](#range-column-optimization)
+* **Range Column** (a single column, only present if pieces have ranges): See [Range Column Optimization](#optimization-range-column)
 
 Node fields: (See [assembler_1.h](burr-tools/src/lib/assembler_1.h#L61))
 * `right` / `left` / `up` / `down` - Links to neighbor nodes in dancing links structure.
 * `colCount` - Shared use: column number for normal nodes and count for column header nodes.
 * `min` / `max` - Number of 1s allowed in rows picked for an exact cover solution.
-* `weight` - TODO
+* `weight` - How many `1`s this node contributes towards this column's min/max. I belive this is only used for the range column.
 
 Each property of nodes is a vector, with the same index of each vector
 corresponding to properties of the same node. Nodes are indexed with 0 being
@@ -141,11 +141,181 @@ Aside from some topics like symmetry, that's all there is to the initial matrix!
 
 ### Cover Solver
 
-TODO
+High-level functions
+* [`assemble()`](burr-tools/src/lib/assembler_1.cpp#L1807): Top-level method for finding solutions. Mostly just calls `iterative()`.
+* [`iterative()`](burr-tools/src/lib/assembler_1.cpp#L1469): Huge loop with the cover solving logic.
+* [`solution()`](burr-tools/src/lib/assembler_1.cpp#L1054): Called when a solution is found.
 
-[`assemble()`](burr-tools/src/lib/assembler_1.cpp#L1807): 
-[`iterative()`](burr-tools/src/lib/assembler_1.cpp#L1469): 
+Cover problem related methods:
+* [`hiderows()`](burr-tools/src/lib/assembler_1.cpp#L1207)
+* [`hiderow()`](burr-tools/src/lib/assembler_1.cpp#L1170)
+* [`unhiderows()`](burr-tools/src/lib/assembler_1.cpp#L1229)
+* [`unhiderow()`](burr-tools/src/lib/assembler_1.cpp#L1184)
+* [`cover_column_only()`](burr-tools/src/lib/assembler_1.cpp#L1136)
+* [`uncover_column_only()`](burr-tools/src/lib/assembler_1.cpp#L1141)
+* [`cover_column_rows()`](burr-tools/src/lib/assembler_1.cpp#L1146)
+* [`uncover_column_rows()`](burr-tools/src/lib/assembler_1.cpp#L1158)
+* [`column_condition_fulfilled()`](burr-tools/src/lib/assembler_1.cpp#L1240)
+* [`column_condition_fulfillable()`](burr-tools/src/lib/assembler_1.cpp#L1244)
+* [`open_column_conditions_fulfillable()`](burr-tools/src/lib/assembler_1.cpp#L1084)
+* [`find_best_unclosed_column()`](burr-tools/src/lib/assembler_1.cpp#L1111): Finds the best next column to pick. Uses `betterParams()` as a comparison function.
+* [`betterParams()`](burr-tools/src/lib/assembler_1.cpp#L1096)
 
+Most of the interesting logic is in `iterative()`. The whole method is one big
+loop executing tasks in a task stack. To sumarize it:
+
+```cpp
+// (initialization done on class init)
+task_stack.push_back(0);
+next_row_stack.push_back(0);
+
+while (task_stack.size() > 0) {
+  switch (task_stack.back()) {
+
+    // Various cases remove tasks using:
+    task_stack.pop_back();
+    next_row_stack.pop_back();
+
+    // Various cases add tasks using:
+    task_stack.push_back(...);
+    next_row_stack.push_back(...);
+
+  }
+}
+```
+
+Above `iterative()` is a recursive implementation, `rec()`, which is meant to
+be easier to understand. It has the code corresponding to each case in
+`iterative()` labeled. I'm not sure I can summarize `rec()` without rewriting
+it, so here's a shot at a half-pseudocode recursive implementation that should
+do the same thing:
+
+```cpp
+void select_new_column() {
+    if (there are no columns in header) {
+      solution();
+      return;
+    }
+
+    int col = find_best_unclosed_column();
+    if (col == -1) { return; }
+
+    if (colCount[col] == 0 && !column_condition_fulfilled(col)) {
+      return;
+    }
+
+    cover_column_only(col);
+    rec(down[col]);
+    uncover_column_only(col);
+
+}
+
+void assembler_1_c::rec(unsigned int node_index) {
+  if (node_index is a header node) {
+    select_new_column()
+    return;
+  }
+
+  unsigned int col = colCount[node_index];  // In non-header nodes, colCount references the column header node
+
+  if (column_condition_fulfilled(col)) {
+    cover_column_rows(col);
+    if (open_column_conditions_fulfillable())
+      rec(0);
+    uncover_column_rows(col);
+  }
+
+  //-------> case 3
+
+  // add a unhiderows marker, so that the rows hidden in the loop
+  // below can be unhidden properly
+  hidden_rows.push_back(0);
+
+  // now try all rows starting with the row given as parameter
+  // and go down until we are in the header. When we go up
+  // from the header we actually end in a node with a higher
+  // number, that's the end check
+  //-------> case 4
+  for (unsigned int row = node_index; up[row] < row ; row = down[row]) {
+
+    rows.push_back(row);
+
+    // add row to rowset
+    weight[colCount[row]] += weight[row];
+    for (unsigned int r = right[row]; r != row; r = right[r])
+      weight[colCount[r]] += weight[r];
+
+    // if there are unfulfillable columns we don't even need to check any further
+    if (open_column_conditions_fulfillable()) {
+
+      // remove useless rows (that are rows that have too much weight
+      // in one of their nodes that would overflow the expected weight
+      hiderows(row);
+
+      if (open_column_conditions_fulfillable()) {
+
+        if (colCount[col] == 0) {
+
+          // when there are no more rows in the current column
+          // we can immediately start a new column
+          // if the current column condition is really fulfilled
+          if (column_condition_fulfilled(col))
+            rec(0);
+
+        } else {
+
+          // we need to recurse, if there are rows left and the current
+          // column condition is still fulfillable, we need to check
+          // the current column again because this column is no longer open,
+          // is was removed on selection
+          if (column_condition_fulfillable(col)) {
+
+            unsigned int newrow = row;
+
+            // do gown until we hit a row that is still inside the matrix
+            // this works because rows are hidden one by one and so the double link
+            // to the row above or below is no longer intact, when the row is gone, the down
+            // pointer still points to the row that is was below before the row was hidden, but
+            // the pointer from the row below doesn't point up to us, so we do down until
+            // the link down-up points back to us
+            while ((down[newrow] >= headerNodes) && up[down[newrow]] != newrow) newrow = down[newrow];
+
+            rec(newrow);
+          }
+        }
+      }
+
+  //-------> case 5
+      // reinsert the rows removed above
+      unhiderows();
+    }
+
+  //-------> case 6
+    // remove row from rowset
+    for (unsigned int r = left[row]; r != row; r = left[r])
+      weight[colCount[r]] -= weight[r];
+    weight[colCount[row]] -= weight[row];
+
+    rows.pop_back();
+
+    (finished_a.back())++;
+
+    // after we finished with this row, we will never use it again, so
+    // remove it from the matrix
+    hiderow(row);
+    hidden_rows.push_back(row);
+  }
+
+  //-------> case 7
+
+  // reinsert all the rows that were remove over the course of the
+  // row by row inspection
+  unhiderows();
+
+  finished_a.pop_back();
+  finished_b.pop_back();
+}
+```
 
 ### Extracting Solutions
 
@@ -154,7 +324,21 @@ TODO
 [L198](burr-tools/src/lib/assembler_1.cpp#L198): `piecePositions` tracks the
 placements for each row so they can be retrieved later.
 
-### Range Column Optimization
+### Optimization: Matrix Reduction
+
+There is actually a step before `iterate()` is called which is purely an
+optimization: `reduce()` is called to make some simplifications of the matrix
+before we actually try to find a solution. The relavent methods not covered in
+the explanation about the solver:
+
+* [`reduce()`](burr-tools/src/lib/assembler_1.cpp#L859): 
+* [`clumpify()`](burr-tools/src/lib/assembler_1.cpp#L766): 
+* [`remove_column()`](burr-tools/src/lib/assembler_1.cpp#L750): 
+* [`remove_row()`](burr-tools/src/lib/assembler_1.cpp#L842): 
+
+TODO
+
+### Optimization: Range Column
 
 An extra column referred to as "rangeColumn" is added to the cover problem,
 used as an optimization if any parts have a range. The idea is that there is a
@@ -166,6 +350,9 @@ pieces if doing so wouldn't allow enough pieces with fixed ranges to be used.
 * [assembler_1.cpp:715](burr-tools/src/lib/assembler_1.cpp#L715): Range is calculated
 * [assembler_1.cpp:386](burr-tools/src/lib/assembler_1.cpp#L386): The column's range is set
 * TODO: Where else is this column touched?
+
+Notice the weight attribute of nodes in the range column are set to the number
+of filled voxels in that row's piece.
 
 Explanatory comment from [assembler_1.cpp:705](burr-tools/src/lib/assembler_1.cpp#L705):
 
@@ -183,3 +370,30 @@ Explanatory comment from [assembler_1.cpp:705](burr-tools/src/lib/assembler_1.cp
 ```
 
 The code can get confusing at times around here. `res_filled` includes both filled and variable voxels, so it should really be named `res_total`. 
+
+TODO
+
+### Optimization: Max Holes
+
+[assembler_1.h:70](burr-tools/src/lib/assembler_1.h#L70):
+```cpp
+  /* this vector contains all columns that are used for the hole
+   * optimisation: up to "holes" instances of these columns might
+   * be zero
+   */
+  std::vector<unsigned int> holeColumns;
+  unsigned int holes;
+```
+
+TODO
+
+### Progress
+
+* [assembler_c::getFinished()](burr-tools/src/lib/assembler.h#L140)
+* [assembler_1_c::finished_a()](burr-tools/src/lib/assembler_1.h#L94)
+
+
+### Open Questions
+* The optimization in `iterative()` [here](burr-tools/src/lib/assembler_1.cpp#L1560) and `rec()` [here](burr-tools/src/lib/assembler_1.cpp#L1302) maybe doesn't do much. It's supposed to be a fast path if the column is empty, but `rec(0)` should be the same as `rec(down[col])` in that case. The only difference is that it skips if the column count is 0 and the condition is unfulfilled.
+* In the if statement in `iterative()` [here](burr-tools/src/lib/assembler_1.cpp#L1621) and `rec()` [here](burr-tools/src/lib/assembler_1.cpp#L1359), it seems like if the condition is false there's no need to do the `cover_column_rows(col)` before and `uncover_column_rows(col)` after.
+  * Not true! The act of doing `cover_column_rows(col)` may change the result of `open_column_conditions_fulfillable()`. I do get the feeling there's a slightly better way of doing this though.
