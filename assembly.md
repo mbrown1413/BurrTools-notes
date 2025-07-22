@@ -89,9 +89,11 @@ The matrix has the following columns (in order):
 
 Node fields: (See [assembler_1.h](burr-tools/src/lib/assembler_1.h#L61))
 * `right` / `left` / `up` / `down` - Links to neighbor nodes in dancing links structure.
-* `colCount` - Shared use: column number for normal nodes and count for column header nodes.
+* `colCount` - Shared use:
+  * Header nodes: sum of node `weight` for all nodes in this column
+  * Non-Header nodes: column header node index
 * `min` / `max` - Number of 1s allowed in rows picked for an exact cover solution.
-* `weight` - How many `1`s this node contributes towards this column's min/max. I belive this is only used for the range column.
+* `weight` - How many `1`s this node contributes towards this column's min/max. I belive this is only used for the range column. Note that `colCount` is the sum of the each `weight` in the column.
 
 Each property of nodes is a vector, with the same index of each vector
 corresponding to properties of the same node. Nodes are indexed with 0 being
@@ -162,7 +164,7 @@ Cover problem related methods:
 * [`betterParams()`](burr-tools/src/lib/assembler_1.cpp#L1096)
 
 Most of the interesting logic is in `iterative()`. The whole method is one big
-loop executing tasks in a task stack. To sumarize it:
+loop executing tasks in a task stack. Its general struture looks like this:
 
 ```cpp
 // (initialization done on class init)
@@ -187,37 +189,25 @@ while (task_stack.size() > 0) {
 Above `iterative()` is a recursive implementation, `rec()`, which is meant to
 be easier to understand. It has the code corresponding to each case in
 `iterative()` labeled. I'm not sure I can summarize `rec()` without rewriting
-it, so here's a shot at a half-pseudocode recursive implementation that should
-do the same thing:
+it, so here's a shot at a half-pseudocode cleanup. I've tried to remove
+debug/optimization features, split parts into functions, and pair down on extra
+comments/spaces so the code structure is more apparent.
 
 ```cpp
-void select_new_column() {
-    if (there are no columns in header) {
-      solution();
-      return;
-    }
-
-    int col = find_best_unclosed_column();
-    if (col == -1) { return; }
-
-    if (colCount[col] == 0 && !column_condition_fulfilled(col)) {
-      return;
-    }
-
-    cover_column_only(col);
-    rec(down[col]);
-    uncover_column_only(col);
-
-}
-
+/**
+ * If called with a header node, select a new column and recurse to process it.
+ * Otherwise, this will process each row in the column, and recurse as needed.
+ */
 void assembler_1_c::rec(unsigned int node_index) {
-  if (node_index is a header node) {
+  if (next_row_stack.back() < headerNodes) {  // Is given node in header?
     select_new_column()
     return;
   }
 
-  unsigned int col = colCount[node_index];  // In non-header nodes, colCount references the column header node
+  // Get column of current node. (In non-header nodes, colCount references the column header node)
+  unsigned int col = colCount[node_index];
 
+  // Consider solutions with no rows from this column selected.
   if (column_condition_fulfilled(col)) {
     cover_column_rows(col);
     if (open_column_conditions_fulfillable())
@@ -225,97 +215,126 @@ void assembler_1_c::rec(unsigned int node_index) {
     uncover_column_rows(col);
   }
 
-  //-------> case 3
-
-  // add a unhiderows marker, so that the rows hidden in the loop
-  // below can be unhidden properly
+  // Add a marker for `unhiderows()` so it removes rows in the stack up only to this point.
   hidden_rows.push_back(0);
 
-  // now try all rows starting with the row given as parameter
-  // and go down until we are in the header. When we go up
-  // from the header we actually end in a node with a higher
-  // number, that's the end check
-  //-------> case 4
-  for (unsigned int row = node_index; up[row] < row ; row = down[row]) {
-
-    rows.push_back(row);
-
-    // add row to rowset
-    weight[colCount[row]] += weight[row];
-    for (unsigned int r = right[row]; r != row; r = right[r])
-      weight[colCount[r]] += weight[r];
-
-    // if there are unfulfillable columns we don't even need to check any further
-    if (open_column_conditions_fulfillable()) {
-
-      // remove useless rows (that are rows that have too much weight
-      // in one of their nodes that would overflow the expected weight
-      hiderows(row);
-
-      if (open_column_conditions_fulfillable()) {
-
-        if (colCount[col] == 0) {
-
-          // when there are no more rows in the current column
-          // we can immediately start a new column
-          // if the current column condition is really fulfilled
-          if (column_condition_fulfilled(col))
-            rec(0);
-
-        } else {
-
-          // we need to recurse, if there are rows left and the current
-          // column condition is still fulfillable, we need to check
-          // the current column again because this column is no longer open,
-          // is was removed on selection
-          if (column_condition_fulfillable(col)) {
-
-            unsigned int newrow = row;
-
-            // do gown until we hit a row that is still inside the matrix
-            // this works because rows are hidden one by one and so the double link
-            // to the row above or below is no longer intact, when the row is gone, the down
-            // pointer still points to the row that is was below before the row was hidden, but
-            // the pointer from the row below doesn't point up to us, so we do down until
-            // the link down-up points back to us
-            while ((down[newrow] >= headerNodes) && up[down[newrow]] != newrow) newrow = down[newrow];
-
-            rec(newrow);
-          }
-        }
-      }
-
-  //-------> case 5
-      // reinsert the rows removed above
-      unhiderows();
-    }
-
-  //-------> case 6
-    // remove row from rowset
-    for (unsigned int r = left[row]; r != row; r = left[r])
-      weight[colCount[r]] -= weight[r];
-    weight[colCount[row]] -= weight[row];
-
-    rows.pop_back();
-
-    (finished_a.back())++;
-
-    // after we finished with this row, we will never use it again, so
-    // remove it from the matrix
-    hiderow(row);
-    hidden_rows.push_back(row);
+  for (row in col) {
+    choose_row(col, row)
   }
 
-  //-------> case 7
-
-  // reinsert all the rows that were remove over the course of the
-  // row by row inspection
+  // reinsert all the rows that were removed over the course of the row by row inspection
   unhiderows();
+}
 
-  finished_a.pop_back();
-  finished_b.pop_back();
+/* Select a column to work with and recurse to process it. */
+void select_new_column() {
+  if (right[0] == 0) {  // Are there no more columns?
+    solution();
+    return;
+  }
+
+  int col = find_best_unclosed_column();
+  if (col == -1) { return; }
+
+  if (colCount[col] == 0) {
+    if (column_condition_fulfilled(col)) {
+
+      // Move to another column, since this one is fulfilled
+      cover_column_only(col);
+      rec(0);
+      uncover_column_only(col);
+
+    }
+  } else {
+
+    // Recurse to process rows in this column
+    cover_column_only(col);
+    rec(down[col]);
+    uncover_column_only(col);
+
+  }
+}
+
+void choose_row(unsigned int col, unsigned int row) {
+  rows.push_back(row);
+
+  // Subtract column weights for each `1` in this row
+  weight[colCount[row]] += weight[row];
+  for (unsigned int r = right[row]; r != row; r = right[r])
+    weight[colCount[r]] += weight[r];
+
+  // if there are unfulfillable columns we don't even need to check any further
+  if (open_column_conditions_fulfillable()) {
+
+    // remove useless rows (that are rows that have too much weight
+    // in one of their nodes that would overflow the expected weight
+    hiderows(row);
+
+    if (open_column_conditions_fulfillable()) {
+      continue_search_in_same_column(col, row)
+    }
+
+    unhiderows();
+  }
+
+  // Restore column weights
+  for (unsigned int r = left[row]; r != row; r = left[r])
+    weight[colCount[r]] -= weight[r];
+  weight[colCount[row]] -= weight[row];
+
+  rows.pop_back();
+
+  // after we finished with this row, we will never use it again, so
+  // remove it from the matrix
+  hiderow(row);
+  hidden_rows.push_back(row);
+}
+
+/**
+ * Called after a row is chosen, but based on the column's
+ * min/max/count we could choose more rows in the same column.
+ */
+void continue_search_in_same_column(unsigned int col, unsigned int row) {
+  if (colCount[col] == 0) {
+
+    // when there are no more rows in the current column
+    // we can immediately start a new column
+    // if the current column condition is really fulfilled
+    if (column_condition_fulfilled(col))
+      rec(0);
+
+  } else {
+
+    // we need to recurse, if there are rows left and the current
+    // column condition is still fulfillable, we need to check
+    // the current column again because this column is no longer open,
+    // is was removed on selection
+    if (column_condition_fulfillable(col)) {
+
+      unsigned int newrow = row;
+
+      // do gown until we hit a row that is still inside the matrix
+      // this works because rows are hidden one by one and so the double link
+      // to the row above or below is no longer intact, when the row is gone, the down
+      // pointer still points to the row that is was below before the row was hidden, but
+      // the pointer from the row below doesn't point up to us, so we do down until
+      // the link down-up points back to us
+      while ((down[newrow] >= headerNodes) && up[down[newrow]] != newrow) newrow = down[newrow];
+
+      rec(newrow);
+    }
+  }
 }
 ```
+
+Got that? Good, here's what the same algorithm looks like in the cases of
+`iterative()`. Remember `0` is pushed to the task stack on initialization.
+
+TODO
+
+```cpp
+```
+
 
 ### Extracting Solutions
 
