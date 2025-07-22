@@ -6,7 +6,8 @@ Notes I've taken on BurrTools internals for the purposes of understanding the co
 ## Topics
 
 * [Data Structures](data-structures.md)
-* [Assembly](assembly.md)
+* [Assemblers](assemblers.md)
+* [Assembly Algorithm](assembly-algorithm.md)
 * [Grids](grids.md)
 * [Symmetry](symmetry.md)
 
