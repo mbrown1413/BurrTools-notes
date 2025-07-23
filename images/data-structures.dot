@@ -1,0 +1,17 @@
+digraph "Data Structures" {
+    node [shape=record]
+
+    puzzle_c -> gridType_c [label="gt"]
+    puzzle_c -> voxel_c [label="shapes"]
+    puzzle_c -> problem_c [label="problems"]
+
+    problem_c -> part_c [label="parts"]
+    problem_c -> assembler_c [label="assm"]
+    problem_c -> solution_c [label="solutions"]
+
+    solution_c -> assembly_c [label="assembly"]
+    solution_c -> separation_c [label="tree"]
+    solution_c -> separationInfo_c [label="treeInfo"]
+
+    assembly_c -> placement_c [label="placements"]
+}

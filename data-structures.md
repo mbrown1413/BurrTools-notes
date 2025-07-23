@@ -7,6 +7,8 @@ The XML save functionality starts at `puzzle_c::save()` which calls `*::save()`
 for its complex attributes like `problem_c::problems`, which in turn calls more
 `save()` functions, etc.
 
+![Data Structure Graph](images/data-structures.svg)
+
 ## [puzzle_c](burr-tools/src/lib/puzzle.h#L47)
 * [gridType_c](burr-tools/src/lib/gridtype.h#L46) *gt;
 * vector\<[voxel_c](burr-tools/src/lib/voxel.h#L51)*\> shapes;
