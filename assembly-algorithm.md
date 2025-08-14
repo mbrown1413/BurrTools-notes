@@ -282,10 +282,26 @@ void continue_search_in_same_column(unsigned int col, unsigned int row) {
 Got that? Good, here's what the same algorithm looks like in the cases of
 `iterative()`. Remember `0` is pushed to the task stack on initialization.
 
-TODO
+Case 0:
+* If max holes exceeded
+  * **end task**
+* If next row is in header
+  * If no columns are left
+    * **end task**
+  * Choose a new column
+  * If no column could be found
+    * **end task**
+  * If column is empty
+    * If condition fulfilled
+      * `cover_column_only(col)`
+      * **push task 1**: uncover_column_only
+      * **push task 0**: process node or pick column
+      * **break** (stop running current task but leave it in the stack)
+    * **end task**
+* else
+  * 
 
-```cpp
-```
+TODO
 
 
 ## Extracting Solutions
@@ -386,3 +402,4 @@ Although this comment is also in [assembler_0_c::prepare](burr-tools/src/lib/ass
 * The optimization in `iterative()` [here](burr-tools/src/lib/assembler_1.cpp#L1560) and `rec()` [here](burr-tools/src/lib/assembler_1.cpp#L1302) maybe doesn't do much. It's supposed to be a fast path if the column is empty, but `rec(0)` should be the same as `rec(down[col])` in that case. The only difference is that it skips if the column count is 0 and the condition is unfulfilled.
 * In the if statement in `iterative()` [here](burr-tools/src/lib/assembler_1.cpp#L1621) and `rec()` [here](burr-tools/src/lib/assembler_1.cpp#L1359), it seems like if the condition is false there's no need to do the `cover_column_rows(col)` before and `uncover_column_rows(col)` after.
   * Not true! The act of doing `cover_column_rows(col)` may change the result of `open_column_conditions_fulfillable()`. I do get the feeling there's a slightly better way of doing this though.
+* What is BurrTools doing when it says "optimize piece <#>"? What about other messages during solving?

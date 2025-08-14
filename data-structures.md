@@ -32,6 +32,8 @@ Doesn't hold any data that makes it into XML except for an opaque value
 representing the current assembler state, which is used to restore an
 interrupted assembly.
 
+See: [Assemblers](assemblers.md)
+
 ## [solution_c](burr-tools/src/lib/solution.h#L36)
 * [assembly_c](burr-tools/src/lib/assembly.h#L154)* assembly;
 * [separation_c](burr-tools/src/lib/disassembly.h#L170)* tree;

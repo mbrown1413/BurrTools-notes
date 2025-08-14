@@ -31,6 +31,24 @@ See also: [BurrTools User Guide: Concepts and Definitions](https://burrtools.sou
     * Part of a problem but derived from a problem's list of parts, for example in [problem_c::getNumberOfPieces](burr-tools/src/lib/problem.cpp#L761).
     * For example: If a problem has one part with `shapeId=1, min=1, max=3`, that problem has 3 pieces with `shapeId=1`.
 
+## Build Notes
+
+Debug build:
+
+    $ ./configure CPPFLAGS="-g"
+    $ make clean
+    $ make
+    $ gdb ./src/burrTxt2 ...
+
+Profiling (TOOD: How to make this work with threading):
+
+    $ ./configure CPPFLAGS="-g -pg" LDFLAGS="-g -pg"
+    $ make clean
+    $ make
+    $ ./src/burrTxt2 ...
+    $ gprof src/burrTxt2
+
+
 ## Resources
 
 * [BurrTools User Guide](https://burrtools.sourceforge.net/gui-doc/toc.html)

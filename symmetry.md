@@ -94,11 +94,11 @@ int assembler_1_c::prepare(bool hasRange, unsigned int rangeMin, unsigned int ra
 }
 ```
 
-1. Find symmetry breaker shape
-This runs even if all checkboxes in UI indicate that you want to keep all
-symmetries. It will also find the best piece to break symmetry, _then_ ignore
-it that piece has a range. It'd make more sense to exclude pieces with a range
-in the first place.
+1. Find symmetry breaker shape - This runs even if all checkboxes in UI
+   indicate that you want to keep all symmetries. It will also find the best
+   piece to break symmetry, _then_ ignore it that piece has a range. It'd make
+   more sense to exclude pieces with a range in the first place.
+
 ```cpp
 symBreakerShape = i with the lowest maximum count and lowest symmetry in common with the result shape
 // Lowest: problem.getPartMaximum(i) < problem.getPartMaximum(symBreakerShape)
@@ -123,9 +123,9 @@ if (
 }
 ```
 
-2. Initialize mirror structure if needed
-This goes through every piece without mirror self-symmetry and checks if it has
-mirror symmetry with another piece. The comments spell out the possible cases:
+2. Initialize mirror structure if needed - This goes through every piece
+   without mirror self-symmetry and checks if it has mirror symmetry with
+   another piece. The comments spell out the possible cases:
     * (1) all pieces contain mirror symmetries -> check mirrors, but no pairs
     * (2) as least one piece has no mirror symmetries
         * (2a) all pieces with no mirror symmetries have a mirror partner -> check mirrors, find pairs
@@ -175,32 +175,35 @@ if (mirrorCheck || pieceRanges) {
 }
 ```
 
-3. Create cover problem from piece placements
-This does the expected enumeration of all pieces and their placements. For each
-placement, it checks a cache first and skips it if that placement has already
-been processed. When it comes across the symmetry breaker piece, it adds to the
-cache any rotations it has in common with the result piece. This prevents those
-rotations from being processed in further loop iterations.
-```cpp
-for (each piece) {
-  for (rotatedPiece of all piece rotations) {
+3. Create cover problem from piece placements - This does the expected
+   enumeration of all pieces and their placements. For each placement, it
+   checks a cache first and skips it if that placement has already been
+   processed. When it comes across the symmetry breaker piece, it adds to the
+   cache any rotations it has in common with the result piece. This prevents
+   those rotations from being processed in further loop iterations.
 
-      for(every (x, y, z) voxel in bounds) {
-        if (canPlace(rotatedPiece, x, y, z)) {
-          AddPieceNode(...)
-          for(voxel in placement) {
-            AddVoxelNode(...)
-          }
-          if (range) {
-            AddRangeNode(...);
-          }
+To summarize [assembler_1.cpp:570-638](burr-tools/src/lib/assembler_1.cpp#L570)
+
+```cpp
+for(each part) {
+  for(rotatedPiece of all this shape's rotations) {
+
+    for(every (x, y, z) voxel in bounds) {
+      if (canPlaceAt(rotatedPiece, x, y, z)) {
+        AddPieceNode(...)
+        for(voxel in placement) {
+          AddVoxelNode(...)
+        }
+        if(part has a range) {
+          AddRangeNode(...);
         }
       }
+    }
 
-      if (this is the symmetry breaker shape) {
-        Mark all transforms that symmetry breaker shape has in common with
-        result as complete, so we don't add them to the matrix next iteration
-      }
+    if (this is the symmetry breaker shape) {
+      Mark all transforms that symmetry breaker shape has in common with
+      result as complete, so we don't add them to the matrix next iteration
+    }
 
   }
 }
