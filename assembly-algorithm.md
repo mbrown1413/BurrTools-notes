@@ -279,29 +279,21 @@ void continue_search_in_same_column(unsigned int col, unsigned int row) {
 }
 ```
 
-Got that? Good, here's what the same algorithm looks like in the cases of
-`iterative()`. Remember `0` is pushed to the task stack on initialization.
+Got that? Good.
 
-Case 0:
-* If max holes exceeded
-  * **end task**
-* If next row is in header
-  * If no columns are left
-    * **end task**
-  * Choose a new column
-  * If no column could be found
-    * **end task**
-  * If column is empty
-    * If condition fulfilled
-      * `cover_column_only(col)`
-      * **push task 1**: uncover_column_only
-      * **push task 0**: process node or pick column
-      * **break** (stop running current task but leave it in the stack)
-    * **end task**
-* else
-  * 
+I gave up on understanding the iterative version without doing a substantial
+cleanup on the code and running regression tests on my new version. You can
+find my latest efforts here:
 
-TODO
+  https://github.com/mbrown1413/burr-tools/blob/master/src/lib/assembler_1.cpp
+
+Notice `enum TaskType` near the top labels the tasks and gives a description of
+what each does. This should make it somewhat clear how control flows through
+each task. It's helpful to sometimes think of the tasks as "goto" statements,
+with task 0 being a recursive call.
+
+It's also worth a look at the recursive version, which is also cleaned up an
+kept in sync with the iterative version.
 
 
 ## Extracting Solutions
