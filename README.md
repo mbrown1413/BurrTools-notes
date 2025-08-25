@@ -33,6 +33,12 @@ See also: [BurrTools User Guide: Concepts and Definitions](https://burrtools.sou
 
 ## Build Notes
 
+Initial build:
+
+    autoreconf -fvi
+    ./configure
+    make
+
 Debug build:
 
     $ ./configure CPPFLAGS="-g"
@@ -48,6 +54,11 @@ Profiling (TOOD: How to make this work with threading):
     $ ./src/burrTxt2 ...
     $ gprof src/burrTxt2
 
+Reset to default build:
+
+    $ ./configure
+    $ make clean
+    $ make
 
 ## Resources
 
