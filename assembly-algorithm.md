@@ -44,7 +44,9 @@ Node fields: (See [assembler_1.h](burr-tools/src/lib/assembler_1.h#L61))
   * Header nodes: sum of node `weight` for all nodes in this column
   * Non-Header nodes: column header node index
 * `min` / `max` - Number of 1s allowed in rows picked for an exact cover solution.
-* `weight` - How many `1`s this node contributes towards this column's min/max. I belive this is only used for the range column. Note that `colCount` is the sum of the each `weight` in the column.
+* `weight`
+  * Header nodes: sum of currently chosen row set's weights in this column.
+  * Non-header nodes: How much this node contributes towards this column's min/max.
 
 Each property of nodes is a vector, with the same index of each vector
 corresponding to properties of the same node. Nodes are indexed with 0 being
@@ -323,17 +325,15 @@ TODO
 
 An extra column referred to as "rangeColumn" is added to the cover problem,
 used as an optimization if any parts have a range. The idea is that there is a
-minimum and maximum number of total ranged pieces that have to be used in a
-solution, purely based on voxel counts of the shapes and solution of the
-problem. When exploring solutions, this column prevents adding too many ranged
-pieces if doing so wouldn't allow enough pieces with fixed ranges to be used.
+minimum and maximum number of total voxels from ranged pieces that have to be
+used in a solution, purely based on voxel counts of the shapes and solution of
+the problem. When exploring solutions, this column prevents adding too many
+ranged pieces if doing so wouldn't allow enough fixed pieces to be used.
 
-* [assembler_1.cpp:715](burr-tools/src/lib/assembler_1.cpp#L715): Range is calculated
-* [assembler_1.cpp:386](burr-tools/src/lib/assembler_1.cpp#L386): The column's range is set
-* TODO: Where else is this column touched?
-
-Notice the weight attribute of nodes in the range column are set to the number
-of filled voxels in that row's piece.
+* [assembler_1.cpp:715](burr-tools/src/lib/assembler_1.cpp#L715): Min/max is calculated
+* [assembler_1.cpp:386](burr-tools/src/lib/assembler_1.cpp#L386): The range column's min/max is set
+* [assembler_1.cpp:621](burr-tools/src/lib/assembler_1.cpp#L386): A node is added to range column when piece has a range. Its weight is the number of voxels in the piece.
+  * See [AddRangeNode](burr-tools/src/lib/assembler_1.cpp#L386)
 
 Explanatory comment from [assembler_1.cpp:705](burr-tools/src/lib/assembler_1.cpp#L705):
 
@@ -350,12 +350,47 @@ Explanatory comment from [assembler_1.cpp:705](burr-tools/src/lib/assembler_1.cp
    */
 ```
 
-The code can get confusing at times around here. `res_filled` includes both filled and variable voxels, so it should really be named `res_total`. 
+The code can get confusing at times around here. `res_filled` includes both
+filled and variable voxels, so it should really be named `res_total`. 
 
-TODO
+The range calculation makes sense after you think about it for a bit. We take
+the min/max contribution of voxels we need for the result, then subtract the
+voxels from the fixed pieces:
+
+    RangeMin = MAX(0, number of fixed voxels in result - number of voxels in fixed pieces)
+    RangeMax =        number of total voxels in result - number of voxels in fixed pieces
+
+Then the range column is added to the cover matrix with the following properties:
+* Min / max are set to `RangeMin` / `RangeMax` as calculated above.
+* A node is added for each row with a ranged piece.
+* The weight of the node is the number of voxels in that piece.
+
+Let me explain weights, as I think this is the only place it's used. An
+extension to the cover problem is a column's min/max, which is how many nodes
+are allowed in a column to be chosen for a valid solution. The weight is a
+further extension to the cover problem, where instead of each node worth
+just 1, it's worth a different weight.
+
+Since each row corresponds to a placement of a piece, the range column
+effectively counts the number of voxels used in ranged pieces, and limits it.
+It won't actually change the result, but it could prevent a lot of exploration
+of the search space that won't result in a solution.
 
 
 ## Optimization: Max Holes
+
+Max holes is a user configurable value in a problem. To edit it, click "Detail"
+under the "Puzzle" tab. If there are no ranged pieces, this value is determined
+automatically, otherwise the user-specified value is used, with no limit if not
+specified.
+
+[BurrTools User Guide: Editing Problem Details](https://burrtools.sourceforge.net/gui-doc/EditingProblemDetails.html):
+
+    Finally, this window also contains an entry field called Maximum Number of Holes (empty variable cubes). This value is used by the program, when piece ranges are used, in which case it is not possible for the program to determine how many holes there will be in the final solution. Because this missing information results in a huge slowdown as many more possibilities have to be tried, it is possible to use this field to specify the maximum number of holes allowed. If the number of holes should not be limited, the field should be left empty.
+
+[BurrTools User Guide: Tips and Tricks](https://burrtools.sourceforge.net/gui-doc/TipsandTricks1.html):
+
+    Keep this value as small as possible, because the more holes a puzzle contains the longer the solving will take. Normally the value is undefined, meaning the number of holes is not limited. So if you know the number of holes you want, or you want to limit them, or the solving takes too long, use this field. 
 
 [assembler_1.h:70](burr-tools/src/lib/assembler_1.h#L70):
 ```cpp
@@ -367,7 +402,37 @@ TODO
   unsigned int holes;
 ```
 
-TODO
+* [assembler_1.cpp:375](burr-tools/src/lib/assembler_1.cpp#L375): Add variable voxel columns to a list of hole columns, `holeColumns`.
+* [assembler_1.cpp:686](burr-tools/src/lib/assembler_1.cpp#L686): Set `holes` in the assembler (the maximum number of holes).
+  * if min and max voxels of pieces used is the same (no ranged pieces):
+    * holes = total result voxels - min voxels of pieces used
+  * else if user has defined max holes manually:
+    * Use user's max holes
+  * else:
+    * Disable max holes by setting `holes = 0xFFFFFF`
+* [assembler_1.cpp:1505](burr-tools/src/lib/assembler_1.cpp#L1505): Check for max holes while solving.
+  * Recursive version: [assembler_1.cpp:1266](burr-tools/src/lib/assembler_1.cpp#L1266)
+
+The max holes check counts the number of columns in `holeColumns` which will
+definitely have a `0` in it (that is, it's definitely a hole). If the count
+exceeds `holes` (the max number of holes), it will backtrack. 
+
+This is the condition used for considering a column to be a hole:
+
+    colCount[col] == 0 && weight[col] == 0
+
+* `colCount[col]` means there are no more unchosen rows with a `1` in that column.
+* `weight[col]` means no rows with a `1` have already been chosen in that
+  column. (Remember, a column's weight starts at `0` and is added to as we add
+  rows to our solution row set.)
+
+Unlike the Range Column optimization, the Max Holes optimization may actually
+result in less solutions (if user-specified). It is usually culling solutions
+that the user knows they don't want, or knows don't exist. At this time, I'm
+not aware of any puzzles which take advantage of a user defined max holes (this
+is saved in the "maxHoles" attribute of a problem's XML). I'm curious how much
+the max holes optimization helps speed up the solve process when no ranged
+pieces are used and the number of holes are exactly known.
 
 
 ## Progress
