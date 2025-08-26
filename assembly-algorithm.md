@@ -412,10 +412,24 @@ specified.
     * Disable max holes by setting `holes = 0xFFFFFF`
 * [assembler_1.cpp:1505](burr-tools/src/lib/assembler_1.cpp#L1505): Check for max holes while solving.
   * Recursive version: [assembler_1.cpp:1266](burr-tools/src/lib/assembler_1.cpp#L1266)
+  
+The max holes check looks like this:
 
-The max holes check counts the number of columns in `holeColumns` which will
-definitely have a `0` in it (that is, it's definitely a hole). If the count
-exceeds `holes` (the max number of holes), it will backtrack. 
+```cpp
+if (holes < holeColumns.size()) {
+  unsigned int cnt = holes;
+  for (int i = 0; i < holeColumns.size(); i++)
+    if (colCount[holeColumns[i]] == 0 && weight[holeColumns[i]] == 0)
+      if (cnt == 0)
+        return;
+      else
+        cnt--;
+}
+```
+
+It counts the number of columns in `holeColumns` which will definitely have a
+`0` in it (that is, it's definitely a hole). If the count exceeds `holes` (the
+max number of holes), it will backtrack. 
 
 This is the condition used for considering a column to be a hole:
 
