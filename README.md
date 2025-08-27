@@ -1,7 +1,16 @@
 
 # BurrTools Notes
 
-Notes I've taken on BurrTools internals for the purposes of understanding the code and algorithms.
+Notes I've taken on BurrTools internals for the purposes of understanding the
+code and algorithms.
+
+You can find the latest version of BurrTools at [github.com/burr-tools/burr-tools](https://github.com/burr-tools/burr-tools).
+These notes reference line numbers from commit [29701df](https://github.com/burr-tools/burr-tools/tree/29701dfefc71f686d4e928725de4edf06040d382).
+A copy of the code is committed in `burr-tools/` for easy linking.
+
+In my quest for understanding the assembler I've done some substantial code
+cleanup in a fork, plus other various improvements of the code. You can find
+that work at [github.com/mbrown1413/burr-tools](https://github.com/mbrown1413/burr-tools).
 
 ## Topics
 
