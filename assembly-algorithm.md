@@ -451,8 +451,79 @@ pieces are used and the number of holes are exactly known.
 
 ## Progress
 
-* [assembler_c::getFinished()](burr-tools/src/lib/assembler.h#L140)
-* [assembler_1_c::finished_a()](burr-tools/src/lib/assembler_1.h#L94)
+`finished_a` and `finished_b` are both stacks that store an integer for each
+column that's been chosen. They store:
+* `finished_a`: The number of rows already searched in this column.
+* `finished_b`: The number of rows we have to go through to finish the column.
+
+[assembler_1_c::finished_a()](burr-tools/src/lib/assembler_1.h#L94),
+[assembler_1_c::finished_b()](burr-tools/src/lib/assembler_1.h#L95)
+```cpp
+  std::vector<unsigned int> finished_a;
+  std::vector<unsigned int> finished_b;
+```
+
+They are tracked throughout the exact cover algorithm as follows:
+
+* [L1633](burr-tools/src/lib/assembler_1.cpp#L1633) (recursive: [L1371](burr-tools/src/lib/assembler_1.cpp#L1371)).
+When we choose a new column, push `0` to `finished_a` and push the column count to `finished_b`.
+
+* [L1614](burr-tools/src/lib/assembler_1.cpp#L1614) (recursive: [L1352](burr-tools/src/lib/assembler_1.cpp#L1352)).
+If the column could have no rows chosen, we do the same thing but add `1` to `finished_b` for this additional possibility.
+
+* [L1792](burr-tools/src/lib/assembler_1.cpp#L1792) (recursive: [L1463](burr-tools/src/lib/assembler_1.cpp#L1463))
+When we finish considering a column we pop from the stack.
+
+* [L1769](burr-tools/src/lib/assembler_1.cpp#L1769) (recursive: [L1449](burr-tools/src/lib/assembler_1.cpp#L1449))
+Each time we finish considering a row, we increment `finished_a`.
+
+* [L1657](burr-tools/src/lib/assembler_1.cpp#L1657) (recursive: [L1367](burr-tools/src/lib/assembler_1.cpp#L1367))
+If we finish considering choosing no rows from this column, we also increment `finished_a`.
+
+`getFinished()` calculates the progress based on `finished_a` and `finished_b`:
+
+[assembler_c::getFinished()](burr-tools/src/lib/assembler.h#L140)
+
+```cpp
+  /**
+   * a function that returns the finished percentage in the range
+   * between 0 and 1. It must be possible to call this function
+   * while assemble is running
+   */
+  virtual float getFinished(void) const { return 0; }
+```
+
+[assembler_1_c::getFinished()](burr-tools/src/lib/assembler_1.cpp#L1825)
+
+```cpp
+float assembler_1_c::getFinished(void) const {
+  if (next_row_stack.size() == 0) return 1;
+  float erg = 0;
+  for (int r = finished_a.size()-1; r >= 0; r--) {
+    erg += finished_a[r];
+    erg /= finished_b[r];
+  }
+  return erg;
+}
+```
+
+It works by going from the deepest/newest column chosen to the
+shallowest/oldest column chosen. For the first column's progress the
+calculation is obvious:
+
+    finished_a[col] / finished_b[col]
+
+For subsequent columns, it takes some more thinking to wrap your head around
+it. It's basically the current column's progress plus the fractional progress
+of the deeper column:
+
+    finished_a[col] / finished_b[col] + previous_depth_progress / finished_b[col]
+
+That second part is divided by `finished_b[col]` since the deeper column's
+progress is within the `col` under consideration. This is algebraically comes
+out to the same as the calculation in the code:
+
+    (previous_depth_progress + finished_a[col]) / finished_b[col]
 
 
 ## Removing Duplicates
