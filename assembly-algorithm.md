@@ -34,8 +34,8 @@ initialize the cover problem matrix. Its call graph looks like this:
 
 The matrix has the following columns (in order):
 * **Part** (one for each)
-* **Fixed Voxels** (one for each): These are the only columns required for a solution. TODO: How are the nodes from other columns removed from the header row?
-* **Variable Voxels** (one for each)
+* **Fixed Voxels** (one for each): These are the only columns required for a solution.
+* **Variable Voxels** (one for each): These are not actually removed from the header, their min is just set to `0`.
 * **Range Column** (a single column, only present if pieces have ranges): See [Range Column Optimization](#optimization-range-column)
 
 Node fields: (See [assembler_1.h](burr-tools/src/lib/assembler_1.h#L61))
@@ -92,7 +92,9 @@ for(each part) {
 }
 ```
 
-Aside from some topics like symmetry, that's all there is to the initial matrix! Note that the "optional" columns aren't actually removed from the dancing links header, their min is just set to `0`.
+Aside from some topics like symmetry, that's all there is to the initial
+matrix! Note that the "optional" columns aren't actually removed from the
+dancing links header, their min is just set to `0`.
 
 
 ## Cover Solver
@@ -294,7 +296,7 @@ what each does. This should make it somewhat clear how control flows through
 each task. It's helpful to sometimes think of the tasks as "goto" statements,
 with task 0 being a recursive call.
 
-It's also worth a look at the recursive version, which is also cleaned up an
+It's also worth a look at the recursive version, which is also cleaned up and
 kept in sync with the iterative version.
 
 
@@ -310,7 +312,7 @@ placements for each row so they can be retrieved later.
 
 There is actually a step before `iterate()` is called which is purely an
 optimization: `reduce()` is called to make some simplifications of the matrix
-before we actually try to find a solution. The relavent methods not covered in
+before we actually try to find a solution. The relevent methods not covered in
 the explanation about the solver:
 
 * [`reduce()`](burr-tools/src/lib/assembler_1.cpp#L859): 
@@ -537,7 +539,13 @@ out to the same as the calculation in the code:
     the position number of piece n-1. This can be achieved by adding more
     constraint columns. There need to be one column for each
 
-Although this comment is also in [assembler_0_c::prepare](burr-tools/src/lib/assembler_0.cpp#L402), I believe this is a mistake since only assembler_1 supports piece ranges.
+Although this comment is also in
+[assembler_0_c::prepare](burr-tools/src/lib/assembler_0.cpp#L402), I believe
+this is a mistake since only assembler_1 supports piece ranges.
+
+## Saving Progress
+
+TODO: How assembler state is interrupted, saved and restored.
 
 
 ## Open Questions
@@ -545,3 +553,4 @@ Although this comment is also in [assembler_0_c::prepare](burr-tools/src/lib/ass
 * In the if statement in `iterative()` [here](burr-tools/src/lib/assembler_1.cpp#L1621) and `rec()` [here](burr-tools/src/lib/assembler_1.cpp#L1359), it seems like if the condition is false there's no need to do the `cover_column_rows(col)` before and `uncover_column_rows(col)` after.
   * Not true! The act of doing `cover_column_rows(col)` may change the result of `open_column_conditions_fulfillable()`. I do get the feeling there's a slightly better way of doing this though.
 * What is BurrTools doing when it says "optimize piece <#>"? What about other messages during solving?
+* How much does the max holes optimization help when no ranged pieces are used and the number of holes are exactly known?
