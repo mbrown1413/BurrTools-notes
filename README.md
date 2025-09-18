@@ -50,14 +50,14 @@ Initial build:
 
 Debug build:
 
-    $ ./configure CPPFLAGS="-g"
+    $ ./configure CXXFLAGS="-Og -g"
     $ make clean
     $ make
     $ gdb ./src/burrTxt2 ...
 
 Profiling (TOOD: How to make this work with threading):
 
-    $ ./configure CPPFLAGS="-g -pg" LDFLAGS="-g -pg"
+    $ ./configure CXXFLAGS="-g -pg" LDFLAGS="-g -pg"
     $ make clean
     $ make
     $ ./src/burrTxt2 ...
