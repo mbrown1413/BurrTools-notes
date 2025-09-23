@@ -19,6 +19,7 @@ that work at [github.com/mbrown1413/burr-tools](https://github.com/mbrown1413/bu
 * [Assembly Algorithm](assembly-algorithm.md)
 * [Grids](grids.md)
 * [Symmetry](symmetry.md)
+* [Thread Safety](thread-safety.md)
 
 ## Terminology
 
