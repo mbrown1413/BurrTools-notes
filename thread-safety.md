@@ -73,7 +73,7 @@ behave when the solve thread is running (I've bolded known or potential issues):
 | cb_AddDisasm()                 | Disabled in `updateInterface()` if problem is being solved
 | cb_AddAllDisasm()              | Disabled in `updateInterface()` if problem is being solved
 | cb_PcVis()                     | Enabled | UI only
-| cb_Status()                    | Enabled | **Causes segfault if pieces are deleted**
+| cb_Status()                    | Enabled | UI only
 | cb_3dClick()                   | Enabled | **Causes malformed solutions and sometimes segfault**
 | cb_New()                       | Disabled via dialog
 | cb_Load()                      | Disabled via dialog
