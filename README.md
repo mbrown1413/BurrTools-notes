@@ -15,11 +15,14 @@ that work at [github.com/mbrown1413/burr-tools](https://github.com/mbrown1413/bu
 ## Topics
 
 * [Data Structures](data-structures.md)
-* [Assemblers](assemblers.md)
-* [Assembly Algorithm](assembly-algorithm.md)
 * [Grids](grids.md)
-* [Symmetry](symmetry.md)
-* [Thread Safety](thread-safety.md)
+* UI:
+  * [Thread Safety](thread-safety.md)
+* Solver:
+  * [Assemblers](assemblers.md)
+  * [Assembly Algorithm](assembly-algorithm.md)
+  * [Solver Benchmarks](solver-benchmarks.md)
+  * [Symmetry](symmetry.md)
 
 ## Terminology
 
