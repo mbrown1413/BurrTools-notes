@@ -5,10 +5,18 @@ benchmark command I'll use here:
 
     $ time python verify.py --actions=benchmark --benchmark-reps 10 --filter-baseline-time 0-300
 
+## No change
+
+* [Benchmark graphs](benchmarks/no_change/benchmark_graphs.html)
+* [Raw data](benchmarks/no_change/benchmark.csv)
+
+As a baseline to show how much variance is typical, this compares two identical
+versions of BurrTools.
+
 ## Max Holes
 
 * Changes: Comment out the block at [assembler_1.cpp:1505](burr-tools/src/lib/assembler_1.cpp#L1505)
-* [Full benchmark details](benchmarks/max_holes/benchmark_graphs.html)
+* [Benchmark graphs](benchmarks/max_holes/benchmark_graphs.html)
 * [Raw data](benchmarks/max_holes/benchmark.csv)
 
 Max holes doesn't seem to help when it's automatically determined, and in at
