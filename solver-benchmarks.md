@@ -25,6 +25,16 @@ any puzzles which actually use a manually set max holes.
 
 ## Range Column
 
+* Changes: Add `hasRange = false;` to the start of [assembler_1_c::prepare](burr-tools/src/lib/assembler_1.cpp#L341)
+* [Benchmark graphs](benchmarks/range_column/benchmark_graphs.html)
+* [Raw data](benchmarks/range_column/benchmark.csv)
+
+The range column doesn't appear to make any noticable difference in
+performance. However, we should be able to simplify the code a fair amount if
+we don't have a range column, since it's the only time node weights are used.
+
+TODO: Make patch for removing weights entirely and run benchmarks on that.
+
 ## Matrix Reduction
 
 ## Recursive vs Iterative Implementations
