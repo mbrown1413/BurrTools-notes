@@ -37,6 +37,16 @@ TODO: Make patch for removing weights entirely and run benchmarks on that.
 
 ## Matrix Reduction
 
+* Changes: Add `return;` to the start of [assembler_1_c::reduce](burr-tools/src/lib/assembler_1.cpp#L859)
+    * Note: This may actually affect output. Some changes are in the ordering
+      of solutions, which don't actually matter, but other changes may be
+      significant. I had to disable verification to run the benchmarks.
+* [Benchmark graphs](benchmarks/matrix_reduction/benchmark_graphs.html)
+* [Raw data](benchmarks/matrix_reduction/benchmark.csv)
+
+The matrix reduction optimization definitely helps, especially in
+assembly-heavy files.
+
 ## Recursive vs Iterative Implementations
 
 ## Compiler Options
