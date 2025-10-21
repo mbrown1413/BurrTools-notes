@@ -49,6 +49,18 @@ assembly-heavy files.
 
 ## Recursive vs Iterative Implementations
 
+* Changes: [patch](benchmarks/recursive/recursive.patch)
+* [Benchmark graphs](benchmarks/recursive/benchmark_graphs.html)
+* [Raw data](benchmarks/recursive/benchmark.csv)
+
+The recursive code is surprisingly fast. Compilers these days are pretty good
+at optimization! There are a few cases where it's slower, and a few cases where
+it's a tiny bit faster.
+
+Of course we couldn't switch to the recursive implementation even if we wanted
+to for speed reasons: the iterative implementation allows us to interrupt a
+running solver and resume it later.
+
 ## Compiler Options
 
 `-O2` vs `-O3`

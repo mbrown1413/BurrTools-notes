@@ -1,0 +1,135 @@
+commit 206b700b7edd62213e56d8f36f6bf8eaa927b13d
+Author: Michael Brown <michael@msbrown.net>
+Date:   Sat Aug 9 08:16:04 2025 -0400
+
+    Add compile-time switch to use recursive assembler
+    
+    assembler_1 had an alternative commented out implementation that is
+    recursive instead of an iterative task stack. The intention that the
+    recursive implementation equivalent but easier to understand, and can be
+    used as a starting point in understanding the iterative version.
+    
+    This commit adds an option in `assembler_1.h` to switch to the recursive
+    implementation at compile time. It works the same out of the box as far
+    as I can tell, it's just slower. I only had to fix a few minor compiler
+    warnings to get it to compile.
+
+diff --git a/src/lib/assembler_1.cpp b/src/lib/assembler_1.cpp
+index 478d20c..5102fc2 100644
+--- a/src/lib/assembler_1.cpp
++++ b/src/lib/assembler_1.cpp
+@@ -1248,7 +1248,7 @@ bool assembler_1_c::column_condition_fulfillable(int col) {
+ }
+ 
+ 
+-#if 0
++#if ASSEMBLER_1_RECURSIVE
+ 
+ // this is the recursive version of the method below. I will keep it
+ // here and also try to keep it up to date to the changes I do to the
+@@ -1266,12 +1266,14 @@ void assembler_1_c::rec(unsigned int next_row) {
+   // check holes, if there are too many holes, we return
+   if (holes < holeColumns.size()) {
+     unsigned int cnt = holes;
+-    for (int i = 0; i < holeColumns.size(); i++)
+-      if (colCount[holeColumns[i]] == 0 && weight[holeColumns[i]] == 0)
+-        if (cnt == 0)
++    for (unsigned int i = 0; i < holeColumns.size(); i++)
++      if (colCount[holeColumns[i]] == 0 && weight[holeColumns[i]] == 0) {
++        if (cnt == 0) {
+           return;
+-        else
++        } else {
+           cnt--;
++        }
++      }
+   }
+ 
+   // when we get called with a header node (including 0)
+@@ -1464,7 +1466,25 @@ void assembler_1_c::rec(unsigned int next_row) {
+   finished_b.pop_back();
+ }
+ 
+-#endif
++void assembler_1_c::assemble(assembler_cb * callback) {
++
++  running = true;
++  abbort = false;
++  debug = false;
++
++  if (errorsState == ERR_NONE) {
++      asm_bc = callback;
++      rec(0);
++  }
++
++  running = false;
++}
++
++float assembler_1_c::getFinished(void) const {
++  return 1;
++}
++
++#else
+ 
+ void assembler_1_c::iterative(void) {
+ 
+@@ -1837,6 +1857,8 @@ float assembler_1_c::getFinished(void) const {
+   return erg;
+ }
+ 
++#endif
++
+ static unsigned int getInt(const char * s, unsigned int * i) {
+ 
+   char * s2;
+@@ -2001,6 +2023,13 @@ unsigned int assembler_1_c::getPiecePlacementCount(unsigned int piece) const {
+   return colCount[shape+1];
+ }
+ 
++#if ASSEMBLER_1_RECURSIVE
++
++void assembler_1_c::debug_step(unsigned long /*num*/) {
++}
++
++#else
++
+ void assembler_1_c::debug_step(unsigned long num) {
+   debug = true;
+   debug_loops = num;
+@@ -2010,6 +2039,8 @@ void assembler_1_c::debug_step(unsigned long num) {
+   debug = false;
+ }
+ 
++#endif
++
+ bool assembler_1_c::canHandle(const problem_c &) {
+ 
+   // right now there are no limits
+diff --git a/src/lib/assembler_1.h b/src/lib/assembler_1.h
+index 8b8ed3f..5723d74 100644
+--- a/src/lib/assembler_1.h
++++ b/src/lib/assembler_1.h
+@@ -21,6 +21,10 @@
+ #ifndef __ASSEMBLER_1_H__
+ #define __ASSEMBLER_1_H__
+ 
++// Set to 1 to use recursive code or 0 for iterative code (stock BurrTools).
++// Both should give the same behavior except recursive is not interruptable.
++#define ASSEMBLER_1_RECURSIVE 1
++
+ #include "assembler.h"
+ 
+ #include <vector>
+@@ -114,8 +118,11 @@ private:
+   void unhiderows(void);
+   bool column_condition_fulfilled(int col);
+   bool column_condition_fulfillable(int col);
+-//  void rec(unsigned int next_row);
++  #if ASSEMBLER_1_RECURSIVE
++  void rec(unsigned int next_row);
++  #else
+   void iterative(void);
++  #endif
+   void remove_row(unsigned int r);
+   void remove_column(unsigned int c);
+   unsigned int clumpify(void);
