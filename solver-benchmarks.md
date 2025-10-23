@@ -5,6 +5,10 @@ benchmark command I'll use here:
 
     $ time python verify.py --actions=benchmark --benchmark-reps 10 --filter-baseline-time 0-300
 
+TODO: The code changes we're benchmarking here only affects assembler_1, but
+some puzzles may use assembler_0.
+
+
 ## No change
 
 * [Benchmark graphs](benchmarks/no_change/benchmark_graphs.html)
@@ -61,6 +65,27 @@ Of course we couldn't switch to the recursive implementation even if we wanted
 to for speed reasons: the iterative implementation allows us to interrupt a
 running solver and resume it later.
 
-## Compiler Options
+## Compiler Optimizations
 
-`-O2` vs `-O3`
+Changes: Compile with `-O` flag set to given optimization. For example:
+
+    $ ./configure CXXFLAGS="-O0"
+    $ make clean
+    $ make
+
+Our baseline is `-O2`, which all the others are compared against:
+
+### `-O0`
+
+* [Benchmark graphs](benchmarks/optimization_0/benchmark_graphs.html)
+* [Raw data](benchmarks/optimization_0/benchmark.csv)
+
+Optimizations definitely help! `-O0` is significantly slower than `-O2`.
+
+### `-O1`
+
+### `-O2` stripped
+
+### `-O3`
+
+### Conclusion
