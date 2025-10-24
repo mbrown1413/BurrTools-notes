@@ -84,6 +84,11 @@ Optimizations definitely help! `-O0` is significantly slower than `-O2`.
 
 ### `-O1`
 
+* [Benchmark graphs](benchmarks/optimization_1/benchmark_graphs.html)
+* [Raw data](benchmarks/optimization_1/benchmark.csv)
+
+This is only moderately slower than `-O2`.
+
 ### `-O2` stripped
 
 ### `-O3`
