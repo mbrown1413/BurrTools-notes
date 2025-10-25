@@ -91,6 +91,12 @@ This is only moderately slower than `-O2`.
 
 ### `-O2` stripped
 
+* Changes: Run `src/burrTxt2` after compiling with `-O2`
+* [Benchmark graphs](benchmarks/optimization_2_stripped/benchmark_graphs.html)
+* [Raw data](benchmarks/optimization_2_stripped/benchmark.csv)
+
+Not meaningfully different than an unstripped binary.
+
 ### `-O3`
 
 ### Conclusion
