@@ -99,4 +99,15 @@ Not meaningfully different than an unstripped binary.
 
 ### `-O3`
 
+* [Benchmark graphs](benchmarks/optimization_3/benchmark_graphs.html)
+* [Raw data](benchmarks/optimization_3/benchmark.csv)
+
+`-O3` doesn't help over `-O2`. In fact it's slightly worse in some cases.
+Perhaps turning on only certain optimizations would help, but that would be
+compiler specific and take a fair amount of work.
+
 ### Conclusion
+
+The current default options of `-O2 -g` are good! Stripping binaries doesn't
+really do anything so it's not bad to keep debugging symbols for the default
+compile options at least.
