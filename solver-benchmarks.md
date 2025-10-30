@@ -111,3 +111,14 @@ compiler specific and take a fair amount of work.
 The current default options of `-O2 -g` are good! Stripping binaries doesn't
 really do anything so it's not bad to keep debugging symbols for the default
 compile options at least.
+
+## Assembler 0 vs 1
+
+* Changes: Force all puzzles to use assembler 1 by adding `return true;` to the start of [assembler_0_c::canHandle](burr-tools/src/lib/assembler_0.cpp#L1593)
+* [Benchmark graphs](benchmarks/force_assembler_1/benchmark_graphs.html)
+* [Raw data](benchmarks/force_assembler_1/benchmark.csv)
+
+Assembler 0 only performs faster on some puzzles that are already quick to
+begin with. I wonder if optimizations like matrix reduction are what make these
+slow for assembler 1. These could be skipped for puzzles with matrices that are
+small to begin with.
